@@ -1,0 +1,193 @@
+<html>
+<head>
+<title>Economic Impact of the Eras Tour.ipynb</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #bcbec4;}
+.s1 { color: #cf8e6d;}
+.s2 { color: #7a7e85;}
+.s3 { color: #bcbec4;}
+.s4 { color: #6aab73;}
+.s5 { color: #2aacb8;}
+.ls0 { height: 1px; border-width: 0; color: #43454a; background-color:#43454a}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+Economic Impact of the Eras Tour.ipynb</font>
+</center></td></tr></table>
+<pre><span class="s0">#%% md 
+# Analyzing the economic impact of the Eras Tour on cities across the United States 
+ <hr class="ls0">#%% 
+</span><span class="s1">import </span><span class="s0">sqlite3 </span><span class="s1">as </span><span class="s0">db</span>
+<span class="s1">import </span><span class="s0">pandas </span><span class="s1">as </span><span class="s0">pd</span>
+<hr class="ls0"><span class="s0">#%% md 
+## Overview: 
+This notebook looks at data collected from Taylor Swift's Eras Tour and assesses the economic impact of the tour on cities across the U.S. We will seek to answer the following questions through our data analysis: 
+ 
+- How much money did Swifties contribute to each city's local economy through concert-related expenses? 
+- How might we determine which cities most benefitted from hosting the Eras Tour, from an economic standpoint? <hr class="ls0">#%% md 
+## Datasets used: <hr class="ls0">#%% md 
+### Table #1: dataset_ts.csv 
+https://www.kaggle.com/datasets/tymonbot/taylor-swift-eras-toure?resource=download 
+ 
+This table focuses specifically on the Eras Tour. It has the following columns: <hr class="ls0">#%% md 
+- concert_id: a unique id for each concert 
+- opener_ar1: first artist who opened for that concert (if any) 
+- opener_ar2: second artist who opened for that concert (if any) 
+- city: the city where the concert took place 
+- date: the date of the concert in DD.MM.YYYY format 
+- tick_sales: number of tickets sold for that concert 
+- is_mashup_1: Taylor sings two &quot;surprise songs&quot; per concert. Some surprise songs can be mashups of multiple songs, or they can be one individual song. This column will be 'True' if surprise song 1 is a mashup, and 'False' if it is not a mashup. 
+- surp_1: The title of the first surprise song (or surprise song mashup) 
+- album_1: The album that the first surprise song is from 
+- is_mashup_2: This column will be 'True' if surprise song 2 is a mashup, and 'False' if it is not a mashup. 
+- surp_2: The title of the second surprise song (or surprise song mashup) 
+- album_2: The album that the second surprise song is from 
+- cancel: 'True' if the concert was cancelled, 'False' if it proceeded as expected 
+- cancel_cause: explanation of cancellation, if relevant 
+- wkt_geom: geographical coordinates of the concert 
+- place: name of the concert venue 
+- x: the x coordinate of the concert location 
+- y: the y coordinate of the concert location 
+ 
+(I have explained each column's title for the sake of thoroughness, but we may not need the information from every single column in this table to demonstrate our point.) <hr class="ls0">#%% md 
+### Table #2: Taylor_Train.csv 
+https://www.kaggle.com/datasets/gayu14/taylor-concert-tours-impact-on-attendance-and 
+ 
+This table focuses on all of Taylor's tours prior to the Eras Tour. It has the following columns: <hr class="ls0">#%% md 
+- City: the city the concert took place in  
+- Country: the country the concert took place in 
+- Venue: name of the concert venue 
+- Opening act(s): any artists that opened for Taylor 
+- Attendance (tickets sold / available): number of tickets sold out of tickets available 
+- Revenue: total revenue earned from ticket sales 
+- Tour: which tour the concert was a part of 
+ 
+ 
+## Load data: <hr class="ls0">#%% 
+</span><span class="s2">#Load in the first dataset</span>
+
+<span class="s0">df </span><span class="s3">= </span><span class="s0">pd</span><span class="s3">.</span><span class="s0">read_csv</span><span class="s3">(</span><span class="s4">'dataset_ts.csv'</span><span class="s3">,</span><span class="s0">sep</span><span class="s3">=</span><span class="s4">';'</span><span class="s3">,</span><span class="s0">on_bad_lines</span><span class="s3">=</span><span class="s4">'skip'</span><span class="s3">)</span>
+<span class="s0">connection </span><span class="s3">= </span><span class="s0">db</span><span class="s3">.</span><span class="s0">connect</span><span class="s3">(</span><span class="s4">'demo.db'</span><span class="s3">)</span>
+<span class="s0">table </span><span class="s3">= </span><span class="s0">df</span><span class="s3">.</span><span class="s0">to_sql</span><span class="s3">(</span><span class="s4">'taylor_data1'</span><span class="s3">,</span><span class="s0">connection</span><span class="s3">,</span><span class="s0">if_exists</span><span class="s3">=</span><span class="s4">'replace'</span><span class="s3">)</span>
+<hr class="ls0"><span class="s0">#%% 
+</span><span class="s2">#Load in the second dataset</span>
+
+<span class="s0">df2 </span><span class="s3">= </span><span class="s0">pd</span><span class="s3">.</span><span class="s0">read_csv</span><span class="s3">(</span><span class="s4">'Taylor_Train.csv'</span><span class="s3">,</span><span class="s0">on_bad_lines</span><span class="s3">=</span><span class="s4">'skip'</span><span class="s3">,</span><span class="s0">encoding</span><span class="s3">=</span><span class="s4">'unicode_escape'</span><span class="s3">)</span>
+<span class="s0">connection </span><span class="s3">= </span><span class="s0">db</span><span class="s3">.</span><span class="s0">connect</span><span class="s3">(</span><span class="s4">'demo.db'</span><span class="s3">)</span>
+<span class="s0">table </span><span class="s3">= </span><span class="s0">df2</span><span class="s3">.</span><span class="s0">to_sql</span><span class="s3">(</span><span class="s4">'taylor_data2'</span><span class="s3">,</span><span class="s0">connection</span><span class="s3">,</span><span class="s0">if_exists</span><span class="s3">=</span><span class="s4">'replace'</span><span class="s3">)</span>
+<hr class="ls0"><span class="s0">#%% 
+</span><span class="s2">#Let's take a look at the first few rows of the eras tour dataframe (taylor_data1) to see how everything is formatted</span>
+
+<span class="s0">query </span><span class="s3">= </span><span class="s4">''' 
+ 
+SELECT * 
+ 
+FROM 'taylor_data1' 
+ 
+LIMIT 8 
+ 
+'''</span>
+
+<span class="s0">df2 </span><span class="s3">= </span><span class="s0">pd</span><span class="s3">.</span><span class="s0">read_sql_query</span><span class="s3">(</span><span class="s0">query</span><span class="s3">,</span><span class="s0">connection</span><span class="s3">)</span>
+<span class="s0">print</span><span class="s3">(</span><span class="s0">df2</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% md 
+## Revenue calculations: <hr class="ls0">#%% md 
+To start, let's look at the first few rows of the 'other' tours dataframe (taylor_data2) to get an idea of how it's formatted. <hr class="ls0">#%% 
+query </span><span class="s3">= </span><span class="s4">''' 
+ 
+SELECT * 
+ 
+FROM 'taylor_data2' 
+ 
+LIMIT 8 
+ 
+'''</span>
+
+<span class="s0">df2 </span><span class="s3">= </span><span class="s0">pd</span><span class="s3">.</span><span class="s0">read_sql_query</span><span class="s3">(</span><span class="s0">query</span><span class="s3">,</span><span class="s0">connection</span><span class="s3">)</span>
+<span class="s0">print</span><span class="s3">(</span><span class="s0">df2</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% md 
+Since we don't have data on revenue collected from specific Eras Tour shows yet, we'll have to use one of Taylor's previous tours to figure out our 'average ticket' price. Her reputation stadium tour was the most recent tour prior to the eras tour, so we'll  assume that one will have the most up-to-date prices. We'll query only the shows from taylor_data2 that occurred during the reputation tour.  <hr class="ls0">#%% 
+query </span><span class="s3">= </span><span class="s4">''' 
+ 
+SELECT City,Country,Revenue, [Attendance (tickets sold / available)] AS tickets 
+ 
+FROM 'taylor_data2' 
+ 
+WHERE Tour='Reputation_Stadium_Tour' AND Country='United States' 
+'''</span>
+
+<span class="s0">df_rep_cities </span><span class="s3">= </span><span class="s0">pd</span><span class="s3">.</span><span class="s0">read_sql_query</span><span class="s3">(</span><span class="s0">query</span><span class="s3">,</span><span class="s0">connection</span><span class="s3">)</span>
+<span class="s0">print</span><span class="s3">(</span><span class="s0">df_rep_cities</span><span class="s3">.</span><span class="s0">head</span><span class="s3">())</span><hr class="ls0"><span class="s0">#%% md 
+Notice that the tickets column above is formatted as tickets_sold / tickets_available. Since we're only interested in the tickets sold, we need to slice that string. We should also fix the formatting of the revenue column. <hr class="ls0">#%% 
+df_rep2 </span><span class="s3">= </span><span class="s0">df_rep_cities</span><span class="s3">.</span><span class="s0">copy</span><span class="s3">()</span>
+
+<span class="s0">df_rep2</span><span class="s3">[</span><span class="s4">'tickets'</span><span class="s3">] = </span><span class="s0">df_rep2</span><span class="s3">[</span><span class="s4">'tickets'</span><span class="s3">].</span><span class="s0">astype</span><span class="s3">(</span><span class="s0">str</span><span class="s3">).</span><span class="s0">str</span><span class="s3">.</span><span class="s0">split</span><span class="s3">(</span><span class="s4">'/'</span><span class="s3">).</span><span class="s0">str</span><span class="s3">[</span><span class="s5">0</span><span class="s3">].</span><span class="s0">str</span><span class="s3">.</span><span class="s0">strip</span><span class="s3">().</span><span class="s0">str</span><span class="s3">.</span><span class="s0">replace</span><span class="s3">(</span><span class="s4">','</span><span class="s3">,</span><span class="s4">''</span><span class="s3">).</span><span class="s0">astype</span><span class="s3">(</span><span class="s0">int</span><span class="s3">)</span>
+
+<span class="s0">df_rep2</span><span class="s3">[</span><span class="s4">'Revenue'</span><span class="s3">] = </span><span class="s0">df_rep2</span><span class="s3">[</span><span class="s4">'Revenue'</span><span class="s3">].</span><span class="s0">astype</span><span class="s3">(</span><span class="s0">str</span><span class="s3">).</span><span class="s0">str</span><span class="s3">[</span><span class="s5">1</span><span class="s3">:].</span><span class="s0">str</span><span class="s3">.</span><span class="s0">replace</span><span class="s3">(</span><span class="s4">','</span><span class="s3">,</span><span class="s4">''</span><span class="s3">).</span><span class="s0">astype</span><span class="s3">(</span><span class="s0">int</span><span class="s3">)</span>
+
+<span class="s0">print</span><span class="s3">(</span><span class="s0">df_rep2</span><span class="s3">.</span><span class="s0">head</span><span class="s3">())</span><hr class="ls0"><span class="s0">#%% md 
+To find the average ticket price for each city, we need to find the sum of all the revenue earned in a particular city, then divide it by the total number of tickets sold in that city. Since there were multiple shows played in some cities, there may be multiple rows per city. Then we'll take the average of ALL the cities' average ticket price to get one average ticket price for the entire tour. <hr class="ls0">#%% 
+df_rep3 </span><span class="s3">= </span><span class="s0">df_rep2</span><span class="s3">.</span><span class="s0">groupby</span><span class="s3">([</span><span class="s4">'City'</span><span class="s3">]).</span><span class="s0">agg</span><span class="s3">(</span><span class="s0">total_revenue</span><span class="s3">=(</span><span class="s4">'Revenue'</span><span class="s3">,</span><span class="s4">'sum'</span><span class="s3">),</span><span class="s0">total_tickets</span><span class="s3">=(</span><span class="s4">'tickets'</span><span class="s3">,</span><span class="s4">'sum'</span><span class="s3">))</span>
+<span class="s0">df_rep3</span><span class="s3">[</span><span class="s4">'rev_per_ticket'</span><span class="s3">] = (</span><span class="s0">df_rep3</span><span class="s3">[</span><span class="s4">'total_revenue'</span><span class="s3">]/</span><span class="s0">df_rep3</span><span class="s3">[</span><span class="s4">'total_tickets'</span><span class="s3">]).</span><span class="s0">round</span><span class="s3">(</span><span class="s5">2</span><span class="s3">)</span>
+<span class="s0">print</span><span class="s3">(</span><span class="s0">df_rep3</span><span class="s3">.</span><span class="s0">head</span><span class="s3">())</span>
+
+<span class="s0">mean_rev </span><span class="s3">= </span><span class="s0">df_rep3</span><span class="s3">[</span><span class="s4">'rev_per_ticket'</span><span class="s3">].</span><span class="s0">mean</span><span class="s3">().</span><span class="s0">round</span><span class="s3">(</span><span class="s5">2</span><span class="s3">)</span>
+<span class="s0">print</span><span class="s3">(</span><span class="s0">mean_rev</span><span class="s3">)</span>
+<hr class="ls0"><span class="s0">#%% md 
+Let's estimate the sales tax that each fan would've paid for each ticket purchase. We'll assume a 7% sales tax rate. Also, 
+it's important to remember that the calculations thus far have been based on REVENUE collected by the tour, not the actual ticket price a fan would've paid. (ie the revenue is what money would've remained from the 'list price' after sales tax was subtracted) <hr class="ls0">#%% 
+</span><span class="s2">#formula for sales tax:</span>
+<span class="s2">#(list_price - 0.07*list_price) = mean_rev</span>
+<span class="s0">list_price </span><span class="s3">= </span><span class="s0">mean_rev</span><span class="s3">/</span><span class="s5">0.93</span>
+<span class="s0">sales_tax </span><span class="s3">= (</span><span class="s0">list_price </span><span class="s3">- </span><span class="s0">mean_rev</span><span class="s3">).</span><span class="s0">round</span><span class="s3">(</span><span class="s5">2</span><span class="s3">)</span>
+
+
+<span class="s0">print</span><span class="s3">(</span><span class="s0">sales_tax</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% md 
+Now let's query our eras tour dataframe. We need to narrow it down to just the shows played in the US, since we're focusing in on the economic impact that the tour had on US cities. This brings us to a slight inconvenience: the Eras Tour datasheet doesn't include a countries column, so we can't just use a group by. Instead, we'll need to use a nested query referencing the prior tours datasheet, since it actually does include a country column. Any cities that weren't apart of both the eras tour and the reputation tour will be excluded from our investigation. (Just a good learning opportunity that sometimes we aren't given perfect/ideal data and have to make decisions or assumptions for ourselves.) <hr class="ls0">#%% 
+query </span><span class="s3">= </span><span class="s4">''' 
+ 
+SELECT city, SUM(tick_sales) AS total_tickets, COUNT(city) AS num_shows 
+ 
+FROM 'taylor_data1' 
+ 
+WHERE EXISTS ( 
+ 
+    SELECT * 
+     
+    FROM 'taylor_data2' 
+     
+    WHERE taylor_data1.city=taylor_data2.city AND taylor_data2.Country='United States' 
+) 
+ 
+GROUP BY city 
+ 
+'''</span>
+
+<span class="s0">taylor_cities </span><span class="s3">= </span><span class="s0">pd</span><span class="s3">.</span><span class="s0">read_sql_query</span><span class="s3">(</span><span class="s0">query</span><span class="s3">,</span><span class="s0">connection</span><span class="s3">)</span>
+<span class="s0">print</span><span class="s3">(</span><span class="s0">taylor_cities</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% md 
+It's estimated that swifties spent somewhere between 974 and 1550 dollars on concert-related purchases like transportation, food, accommodations, and merchandise. Using an average of that, plus the average ticket price we calculated earlier, let's figure out how much Taylor earned on her tour and how much the local community earned. <hr class="ls0">#%% 
+df_final </span><span class="s3">= </span><span class="s0">taylor_cities</span><span class="s3">.</span><span class="s0">copy</span><span class="s3">()</span>
+<span class="s0">df_final</span><span class="s3">[</span><span class="s4">'total_taxes'</span><span class="s3">] = </span><span class="s0">df_final</span><span class="s3">[</span><span class="s4">'total_tickets'</span><span class="s3">]*</span><span class="s0">sales_tax</span>
+<span class="s0">df_final</span><span class="s3">[</span><span class="s4">'swiftie_expenses'</span><span class="s3">] = </span><span class="s0">df_final</span><span class="s3">[</span><span class="s4">'total_tickets'</span><span class="s3">]*</span><span class="s5">1262</span>
+<span class="s0">df_final</span><span class="s3">[</span><span class="s4">'taylors_revenue'</span><span class="s3">] = </span><span class="s0">df_final</span><span class="s3">[</span><span class="s4">'total_tickets'</span><span class="s3">]*</span><span class="s0">mean_rev</span>
+<span class="s0">df_final</span><span class="s3">[</span><span class="s4">'local_revenue'</span><span class="s3">] = </span><span class="s0">df_final</span><span class="s3">[</span><span class="s4">'total_taxes'</span><span class="s3">]+</span><span class="s0">df_final</span><span class="s3">[</span><span class="s4">'swiftie_expenses'</span><span class="s3">]</span>
+<span class="s0">df_final </span><span class="s3">= </span><span class="s0">df_final</span><span class="s3">.</span><span class="s0">sort_values</span><span class="s3">(</span><span class="s0">by</span><span class="s3">=</span><span class="s4">'local_revenue'</span><span class="s3">,</span><span class="s0">ascending</span><span class="s3">=</span><span class="s1">False</span><span class="s3">)</span>
+
+
+<span class="s0">print</span><span class="s3">(</span><span class="s0">df_final</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% 
+df_final</span><span class="s3">.</span><span class="s0">plot</span><span class="s3">(</span><span class="s0">x</span><span class="s3">=</span><span class="s4">'city'</span><span class="s3">,</span><span class="s0">y</span><span class="s3">=</span><span class="s4">'total_taxes'</span><span class="s3">,</span><span class="s0">kind</span><span class="s3">=</span><span class="s4">'bar'</span><span class="s3">).</span><span class="s0">set_ylabel</span><span class="s3">(</span><span class="s4">'taxes in millions'</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% 
+df_final</span><span class="s3">.</span><span class="s0">plot</span><span class="s3">(</span><span class="s0">x</span><span class="s3">=</span><span class="s4">'city'</span><span class="s3">,</span><span class="s0">y</span><span class="s3">=</span><span class="s4">'swiftie_expenses'</span><span class="s3">,</span><span class="s0">kind</span><span class="s3">=</span><span class="s4">'bar'</span><span class="s3">).</span><span class="s0">set_ylabel</span><span class="s3">(</span><span class="s4">'expenses in hundred millions'</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% 
+df_final</span><span class="s3">.</span><span class="s0">plot</span><span class="s3">(</span><span class="s0">x</span><span class="s3">=</span><span class="s4">'city'</span><span class="s3">,</span><span class="s0">y</span><span class="s3">=[</span><span class="s4">'taylors_revenue'</span><span class="s3">,</span><span class="s4">'local_revenue'</span><span class="s3">],</span><span class="s0">kind</span><span class="s3">=</span><span class="s4">'bar'</span><span class="s3">).</span><span class="s0">set_ylabel</span><span class="s3">(</span><span class="s4">'revenue in hundred millions'</span><span class="s3">)</span><hr class="ls0"><span class="s0">#%% md 
+## Conclusions 
+With the Eras Tour only just recently being completed and more facts and figures continuing to be published, it's hard to know how accurate these findings are; however, the city of Cincinatti did release their own economic projections prior to Taylor's shows there which we can use as a point of reference. Their reported state tax earnings were actually extremely close to ours: 1.4 million (their figure) vs. 1.2 million (our figure). That being said, there was a greater difference between our findings for 'Swiftie expenses' or money contributed to the local economy through non-tax means: 48 million (their figure) vs. 167 million (our figure). One possible explanation for this is the difference is that it's difficult to accurately calculate what percentage of fans were local, and would've spent on the lower end of the estimated range, versus what percentage were travelling in from far away and would've had more concert-specific expenses. There could also be a relationship between how much a fan was willing to spend on their tickets and whether or not they were travelling in from out of town. If so, that relationship wouldn't be reflected in our calculations because we only used one &quot;average&quot; ticket price. That being said, our calculation for Denver was far closer to the actual reported projection: 140 million (their figure) vs. 212 million (our figure) in 'Swiftie expenses.' It could be that this process is simply too city-specific to try and use the same parameters for each stop on the tour. As more information becomes available, we could use it to make more accurate predictions, but one thing is clear: in every city Taylor visited, she likely contributed vastly more to the local economy than her tour actually brought in. (If our calculations are anything to go by, around 10x more than what her tour actually collected in revenue went to the host city's economy.) According to our calculations, the cities that benefited most from the tour are those that had the most shows and sold the most tickets at those shows: Los Angeles, Arlington, East Rutherford, New Orleans, and Houston. <hr class="ls0">#%% md 
+### Future considerations: 
+- Although using an average 'Swiftie expense' figure of 1267 per concert attendee does seem reasonable given the statistics available, it would be better to break those expenses down into specific cost areas, like accommodations, food, travel, etc. and try to segment concertgoers into &quot;locals&quot; and &quot;out-of-towners.&quot; As seen in the figure below about short-term rental revenue, fans were much more likely to travel into town for concerts that were considered 'significant stops' on the tour, such as the opening and closing shows, as well as Taylor's show in Nashville, given that she is a former country artist. 
+- Another interesting phenomenon to take note of is that according to hotel data, not only was there an obvious spike in revenue during the weekend of an eras show, but there was also a 9% increase in revenue and 10% increase in occupancy the weekend prior to an eras show. It would be worth investigating whether this occupancy was also concert-related and if the revenue was reported. <hr class="ls0">#%% md 
+![image.png](attachment:image.png) <hr class="ls0">#%% md 
+https://www.airdna.co/blog/taylor-swift-transforms-local-economies-str-market <hr class="ls0">#%% md 
+![image.png](attachment:image.png) <hr class="ls0">#%% md 
+https://www.keydatadashboard.com/blog/hospitality-spikes-from-taylor-swifts-u-s-eras-tour</span></pre>
+</body>
+</html>
